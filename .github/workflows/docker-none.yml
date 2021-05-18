@@ -1,0 +1,58 @@
+name: Docker Publish
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    tags: [ 'v*.*.*' ]
+  pull_request_target:
+    branches: [ main ]
+
+env:
+  # TODO: Creates container named ACCOUNT/REPO
+  #       Append /IMAGE-NAME to create a container named ACCOUNT/REPO/IMAGE-NAME
+  IMAGE_NAME: ${{ github.repository }}/none
+  # Registry. Use docker.io for DockerHub
+  REGISTRY: ghcr.io
+
+jobs:
+  # Push image to GitHub Packages.
+  # See also https://docs.docker.com/docker-hub/builds/
+  push:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - id: meta
+        uses: docker/metadata-action@v3
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+      - name: Login to ${{ env.REGISTRY }}
+        uses: docker/login-action@v1 
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+permissions:
+  actions: none
+  checks: none
+  contents: read
+  deployments: none
+  issues: none
+  packages: none
+  pull-requests: none
+  repository-projects: none
+  security-events: none
+  statuses: write
